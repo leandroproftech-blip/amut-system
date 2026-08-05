@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pacientes - Painel AMUT</title>
+<script src="https://cdn.tailwindcss.com"></script>
+ <script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: {
+    'amut-blue': '#00B8FE', 'amut-red': '#FF0F18', 'amut-purple': '#9E2FF8',
+    'amut-green': '#2CC73D', 'amut-navy': '#13266A'
+  } } } }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="../assets/img/logo.png">
+<style>
+  body{font-family:'Poppins',sans-serif;}
+  .tab-btn.ativo { border-color:#00B8FE; color:#13266A; background:#f0f9ff; }
+  .aba { display:none; }
+  .aba.ativa { display:block; }
+</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+<div class="flex min-h-screen">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-amut-navy text-white flex-col hidden md:flex">
+    <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+      <img src="../assets/img/logo.png" class="h-10 w-auto rounded bg-white/90 p-0.5" alt="Logo AMUT">
+      <div class="leading-tight">
+        <p class="font-bold">AMUT</p>
+        <p class="text-xs text-slate-300">Painel de Gestão</p>
+      </div>
+    </div>
+  <nav class="flex-1 px-3 py-5 space-y-1 text-sm">
+      <a href="dashboard.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard</a>
+      <a href="pacientes.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/10 font-semibold"><i data-lucide="users" class="w-5 h-5"></i> Pacientes</a>
+      <a href="responsaveis.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="user-check" class="w-5 h-5"></i> Responsáveis</a>
+      <a href="eventos.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="calendar" class="w-5 h-5"></i> Eventos</a>
+      <a href="contribuicoes.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="dollar-sign" class="w-5 h-5"></i> Contribuições</a>
+      <a href="usuarios.html" data-somente-admin class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="key-round" class="w-5 h-5"></i> Usuários</a>
+      <a href="perfil.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="user" class="w-5 h-5"></i> Meu Perfil</a>
+    </nav>
+    <button onclick="logout()" class="m-3 px-4 py-2.5 rounded-lg bg-amut-red/90 hover:bg-amut-red transition font-semibold text-sm">Sair</button>
+  </aside>
+
+  <div class="flex-1 flex flex-col">
+    <header class="bg-white shadow-sm px-4 md:px-8 py-4 flex items-center justify-between">
+      <h1 class="text-lg md:text-xl font-bold text-amut-navy">Pacientes</h1>
+      <div class="flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <p id="usuario-nome" class="text-sm font-semibold text-slate-700"></p>
+          <p id="usuario-cargo" class="text-xs text-slate-400"></p>
+        </div>
+        <div id="usuario-iniciais" class="w-10 h-10 rounded-full bg-amut-blue text-white flex items-center justify-center font-bold"></div>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 md:p-8 space-y-6">
+      <!-- Filtros -->
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100 flex flex-wrap gap-3 items-center justify-between">
+        <div class="flex flex-wrap gap-3 flex-1">
+          <input id="filtro-busca" type="text" placeholder="Buscar por nome, CPF ou nº de inscrição..."
+            class="flex-1 min-w-[220px] px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amut-blue">
+          <select id="filtro-status" class="px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amut-blue">
+            <option value="">Todos os status</option>
+            <option value="ativo">Ativo</option>
+            <option value="inativo">Inativo</option>
+            <option value="desligado">Desligado</option>
+          </select>
+        </div>
+        <button onclick="abrirModalNovoPaciente()" class="bg-amut-navy hover:bg-amut-blue transition text-white font-semibold px-5 py-2.5 rounded-lg shadow whitespace-nowrap">
+          + Novo Paciente
+        </button>
+      </div>
+
+      <!-- Tabela -->
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500">
+              <tr class="text-left">
+                <th class="py-3 px-4">Nº</th>
+                <th class="py-3 px-4">Nome</th>
+                <th class="py-3 px-4">Sexo</th>
+                <th class="py-3 px-4">Idade</th>
+                <th class="py-3 px-4">Responsável</th>
+                <th class="py-3 px-4">Nível</th>
+                <th class="py-3 px-4">Status</th>
+                <th class="py-3 px-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-pacientes">
+              <tr><td colspan="8" class="py-8 text-center text-slate-400">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="flex items-center justify-between px-4 py-3 border-t text-sm text-slate-500">
+          <span id="info-paginacao">–</span>
+          <div class="flex gap-2">
+            <button onclick="mudarPagina(-1)" class="px-3 py-1.5 border rounded-lg hover:bg-slate-50">← Anterior</button>
+            <button onclick="mudarPagina(1)" class="px-3 py-1.5 border rounded-lg hover:bg-slate-50">Próxima →</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal de cadastro/edição -->
+<div id="modal-paciente" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[92vh] flex flex-col">
+    <div class="flex items-center justify-between px-6 py-4 border-b">
+      <h2 id="modal-titulo" class="text-lg font-bold text-amut-navy">Novo Paciente</h2>
+      <button onclick="fecharModalPaciente()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+    </div>
+
+    <!-- Abas overflow-x-auto-->
+    <div class="flex gap-1 px-6 pt-3 border-b  text-sm">
+      <button type="button" data-aba="1" class="tab-btn ativo px-4 py-2 border-b-2 border-transparent font-medium whitespace-nowrap">1. Pessoais</button>
+      <button type="button" data-aba="2" class="tab-btn px-4 py-2 border-b-2 border-transparent font-medium whitespace-nowrap">2. Sobre o TEA</button>
+      <button type="button" data-aba="3" class="tab-btn px-4 py-2 border-b-2 border-transparent font-medium whitespace-nowrap">3. Escola</button>
+      <button type="button" data-aba="4" class="tab-btn px-4 py-2 border-b-2 border-transparent font-medium whitespace-nowrap">4. Moradia</button>
+      <button type="button" data-aba="5" class="tab-btn px-4 py-2 border-b-2 border-transparent font-medium whitespace-nowrap">5. Socioeconômico</button>
+      <button type="button" data-aba="6" class="tab-btn px-4 py-2 border-b-2 border-transparent font-medium whitespace-nowrap">6. Responsáveis</button>
+      <button type="button" data-aba="7" class="tab-btn px-4 py-2 border-b-2 border-transparent font-medium whitespace-nowrap">7. Outros</button>
+    </div>
+
+    <form id="form-paciente" class="flex-1 overflow-y-auto px-6 py-5">
+      <input type="hidden" id="paciente-id">
+
+      <!-- Aba 1: Pessoais -->
+      <div class="aba ativa" data-aba-conteudo="1">
+        <div class="flex items-center gap-4 mb-4">
+          <img id="foto-preview" src="" class="hidden w-24 h-24 rounded-lg object-cover border border-slate-300">
+          <div id="foto-placeholder" class="w-24 h-24 rounded-lg border border-dashed border-slate-300 flex items-center justify-center text-slate-400 text-[11px] text-center leading-tight">
+            Sem foto<br>(opcional)
+          </div>
+          <div class="flex flex-col gap-2">
+            <label class="lbl mb-0">Foto do paciente</label>
+            <input type="file" id="foto-input" accept="image/*" class="text-xs">
+            <button type="button" onclick="removerFoto()" class="text-xs text-amut-red hover:underline text-left w-fit">Remover foto</button>
+          </div>
+        </div>
+        <div class="grid md:grid-cols-2 gap-4">
+          <div class="md:col-span-2">
+            <label class="lbl">Nome completo *</label>
+            <input type="text" id="nome" required class="inp">
+          </div>
+          <div><label class="lbl">Nº de inscrição</label><input type="text" id="numero_inscricao" class="inp" placeholder="Ex: 001"></div>
+          <div><label class="lbl">Ano</label><input type="number" id="ano_inscricao" class="inp" placeholder="2026"></div>
+          <div><label class="lbl">Data da inclusão</label><input type="date" id="data_inclusao" class="inp"></div>
+          <div><label class="lbl">Sexo</label>
+            <select id="sexo" class="inp"><option value="">–</option><option value="F">Feminino</option><option value="M">Masculino</option></select>
+          </div>
+          <div><label class="lbl">Data de nascimento</label><input type="date" id="data_nascimento" class="inp"></div>
+          <div><label class="lbl">CPF</label><input type="text" id="cpf" class="inp" placeholder="000.000.000-00"></div>
+          <div><label class="lbl">Idade</label><input type="number" id="idade" class="inp"></div>
+          <div class="md:col-span-2"><label class="lbl">Endereço</label><input type="text" id="endereco" class="inp"></div>
+          <div><label class="lbl">Número</label><input type="text" id="numero_endereco" class="inp"></div>
+          <div><label class="lbl">Bairro</label><input type="text" id="bairro" class="inp"></div>
+          <div><label class="lbl">Cidade</label><input type="text" id="cidade" value="Lábrea-AM" class="inp"></div>
+          <div><label class="lbl">CEP</label><input type="text" id="cep" value="69830-000" class="inp"></div>
+          <div class="md:col-span-2"><label class="lbl">Ponto de referência</label><input type="text" id="ponto_referencia" class="inp"></div>
+        </div>
+      </div>
+
+      <!-- Aba 2: Sobre o TEA -->
+      <div class="aba" data-aba-conteudo="2">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div><label class="lbl">Já possui diagnóstico?</label>
+            <select id="possui_diagnostico" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select>
+          </div>
+          <div><label class="lbl">Idade que descobriu o TEA</label><input type="text" id="idade_diagnostico" class="inp"></div>
+          <div class="md:col-span-2"><label class="lbl">Descrição do diagnóstico</label><textarea id="descricao_diagnostico" rows="2" class="inp"></textarea></div>
+          <div><label class="lbl">Nível de suporte</label>
+            <select id="nivel_suporte" class="inp"><option value="">–</option><option value="1">1</option><option value="2">2</option><option value="3">3</option></select>
+          </div>
+          <div><label class="lbl">É verbal?</label><select id="verbal" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Possui comorbidade?</label><select id="possui_comorbidade" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Qual comorbidade?</label><input type="text" id="qual_comorbidade" class="inp"></div>
+          <div><label class="lbl">Em tratamento da comorbidade?</label><select id="em_tratamento_comorbidade" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div class="md:col-span-2"><label class="lbl">Descreva o tratamento</label><textarea id="descricao_tratamento" rows="2" class="inp"></textarea></div>
+          <div><label class="lbl">Faz uso de medicamento?</label><select id="faz_uso_medicamento" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Qual medicamento?</label><input type="text" id="qual_medicamento" class="inp"></div>
+          <div><label class="lbl">Participa de alguma terapia?</label><select id="participa_terapia" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Qual terapia?</label><input type="text" id="qual_terapia" class="inp"></div>
+          <div><label class="lbl">Onde?</label><input type="text" id="onde_terapia" class="inp"></div>
+          <div><label class="lbl">Particular ou SUS?</label>
+            <select id="terapia_particular_ou_sus" class="inp"><option value="">–</option><option>Particular</option><option>SUS</option><option>Ambos</option></select>
+          </div>
+          <div><label class="lbl">Participa de outros projetos sociais?</label><select id="participa_outros_projetos" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Qual projeto?</label><input type="text" id="qual_outro_projeto" class="inp"></div>
+        </div>
+      </div>
+
+      <!-- Aba 3: Escola -->
+      <div class="aba" data-aba-conteudo="3">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div><label class="lbl">Estuda em escola</label>
+            <select id="escola_tipo" class="inp"><option value="">–</option><option>Privada</option><option>Estadual</option><option>Municipal</option><option>Não estuda</option></select>
+          </div>
+          <div><label class="lbl">Nome da escola</label><input type="text" id="escola_nome" class="inp"></div>
+          <div><label class="lbl">Período</label>
+            <select id="periodo_escolar" class="inp"><option value="">–</option><option>Matutino</option><option>Vespertino</option><option>Integral</option></select>
+          </div>
+          <div><label class="lbl">Tem pedido médico p/ 2º professor?</label><select id="possui_pedido_medico_segundo_professor" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Necessidade foi atendida?</label><select id="necessidade_segundo_professor_atendida" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div class="md:col-span-2"><label class="lbl">Informações adicionais</label><textarea id="informacoes_escolares_adicionais" rows="2" class="inp"></textarea></div>
+        </div>
+      </div>
+
+      <!-- Aba 4: Moradia -->
+      <div class="aba" data-aba-conteudo="4">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div><label class="lbl">O imóvel é</label>
+            <select id="imovel_tipo" class="inp"><option value="">–</option><option>Próprio</option><option>Alugado</option><option>Cedido</option><option>Próprio Financiado</option></select>
+          </div>
+          <div><label class="lbl">Quantidade de irmãos</label><input type="number" id="quantidade_irmaos" class="inp" min="0"></div>
+          <div><label class="lbl">Mora com o pai?</label><select id="mora_com_pai" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Mora com a mãe?</label><select id="mora_com_mae" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div class="md:col-span-2"><label class="lbl">Outros moradores</label><input type="text" id="outros_moradores" class="inp"></div>
+        </div>
+      </div>
+
+      <!-- Aba 5: Socioeconômico -->
+      <div class="aba" data-aba-conteudo="5">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div><label class="lbl">Pessoas autistas na família</label><input type="number" id="quantidade_pessoas_autistas_familia" min="0" class="inp"></div>
+          <div></div>
+          <div><label class="lbl">Recebe Bolsa Família?</label><select id="recebe_bolsa_familia" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Valor Bolsa Família (R$)</label><input type="number" step="0.01" id="valor_bolsa_familia" class="inp"></div>
+          <div><label class="lbl">Recebe BPC?</label><select id="recebe_bpc" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Valor BPC (R$)</label><input type="number" step="0.01" id="valor_bpc" class="inp"></div>
+          <div class="md:col-span-2"><label class="lbl">Recebe outro tipo de auxílio</label><input type="text" id="recebe_outro_auxilio" class="inp"></div>
+        </div>
+      </div>
+
+      <!-- Aba 6: Responsáveis -->
+      <div class="aba" data-aba-conteudo="6">
+        <div class="flex items-center justify-between mb-3">
+          <p class="text-sm text-slate-500">Adicione pai, mãe e/ou responsável legal pelo paciente.</p>
+          <button type="button" onclick="adicionarResponsavelForm()" class="text-sm bg-amut-blue text-white font-semibold px-4 py-2 rounded-lg hover:bg-amut-navy transition">+ Adicionar</button>
+        </div>
+        <div id="lista-responsaveis-form" class="space-y-4"></div>
+      </div>
+
+      <!-- Aba 7: Outros -->
+      <div class="aba" data-aba-conteudo="7">
+        <div class="grid md:grid-cols-2 gap-4">
+          <div><label class="lbl">Autoriza publicar fotos?</label><select id="autoriza_fotos" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Contato de emergência</label><input type="text" id="contato_emergencia" class="inp"></div>
+          <div><label class="lbl">Compromete-se a participar das reuniões?</label><select id="compromete_participar_reunioes" class="inp"><option value="">–</option><option value="1">Sim</option><option value="0">Não</option></select></div>
+          <div><label class="lbl">Status do cadastro</label>
+            <select id="status" class="inp"><option value="ativo">Ativo</option><option value="inativo">Inativo</option><option value="desligado">Desligado</option></select>
+          </div>
+          <div class="md:col-span-2"><label class="lbl">Motivo do desligamento (se houver)</label><input type="text" id="motivo_desligamento" class="inp"></div>
+          <div class="md:col-span-2"><label class="lbl">Informações adicionais relevantes</label><textarea id="informacoes_adicionais" rows="2" class="inp"></textarea></div>
+          <div class="md:col-span-2"><label class="lbl">Observações internas da equipe</label><textarea id="observacoes_internas" rows="2" class="inp"></textarea></div>
+        </div>
+      </div>
+    </form>
+
+    <div class="flex items-center justify-between px-6 py-4 border-t bg-slate-50 rounded-b-2xl">
+      <p id="erro-form-paciente" class="text-red-600 text-sm hidden"></p>
+      <div class="flex gap-3 ml-auto">
+        <button type="button" onclick="fecharModalPaciente()" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 transition font-medium">Cancelar</button>
+        <button type="button" onclick="salvarPaciente()" id="btn-salvar-paciente" class="px-6 py-2.5 rounded-lg bg-amut-navy hover:bg-amut-blue transition text-white font-semibold">Salvar Cadastro</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .lbl { display:block; font-size:.8rem; font-weight:500; color:#475569; margin-bottom:.25rem; }
+  .inp { width:100%; padding:.55rem .75rem; border:1px solid #cbd5e1; border-radius:.5rem; font-size:.875rem; }
+  .inp:focus { outline:none; box-shadow:0 0 0 2px #00B8FE; border-color:#00B8FE; }
+</style>
+
+
+<!-- Modal exibido logo após salvar um cadastro, com opções de impressão -->
+<div id="modal-pos-salvar" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm text-center p-8">
+    <div class="text-5xl mb-3">✅</div>
+    <h2 class="text-lg font-bold text-amut-navy mb-1">Cadastro salvo com sucesso!</h2>
+    <p id="pos-salvar-nome" class="text-sm text-slate-500 mb-6"></p>
+    <div class="space-y-3">
+      <button onclick="imprimirComprovante(window.__idPosSalvar)" class="w-full bg-amut-blue hover:bg-amut-navy transition text-white font-semibold px-5 py-2.5 rounded-lg">
+        🖨️ Imprimir Comprovante de Inclusão
+      </button>
+      <button onclick="imprimirFicha(window.__idPosSalvar)" class="w-full border border-amut-navy text-amut-navy hover:bg-amut-navy hover:text-white transition font-semibold px-5 py-2.5 rounded-lg">
+        📄 Imprimir Ficha Completa
+      </button>
+      <button onclick="fecharModalPosSalvar()" class="w-full text-slate-500 hover:text-slate-700 text-sm py-2">
+        Fechar
+      </button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/config.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/api.js"></script>
+<script src="../assets/js/impressao.js"></script>
+<script src="../assets/js/pacientes.js"></script>
+
+ <script>
+      lucide.createIcons();
+    </script>
+
+</body>
+</html>

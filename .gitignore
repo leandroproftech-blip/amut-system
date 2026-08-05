@@ -1,0 +1,30 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente (nunca subir senhas/segredos)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Sistema operacional / editor
+.DS_Store
+Thumbs.db
+Desktop.ini
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Arquivos temporários / backups locais
+* copy*
+*_old.*
+*_old.js
+*_old.html
+*.bak
+*.tmp

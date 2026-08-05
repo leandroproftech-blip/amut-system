@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Meu Perfil - Painel AMUT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              "amut-blue": "#00B8FE",
+              "amut-red": "#FF0F18",
+              "amut-purple": "#9E2FF8",
+              "amut-green": "#2CC73D",
+              "amut-navy": "#13266A",
+            },
+          },
+        },
+      };
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="icon" href="../assets/img/logo.png" />
+    <style>
+      body {
+        font-family: "Poppins", sans-serif;
+      }
+      .lbl {
+        display: block;
+        font-size: 0.8rem;
+        font-weight: 500;
+        color: #475569;
+        margin-bottom: 0.25rem;
+      }
+      .inp {
+        width: 100%;
+        padding: 0.55rem 0.75rem;
+        border: 1px solid #cbd5e1;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+      }
+      .inp:focus {
+        outline: none;
+        box-shadow: 0 0 0 2px #00b8fe;
+        border-color: #00b8fe;
+      }
+    </style>
+  </head>
+  <body class="bg-slate-100 text-slate-800">
+    <div class="flex min-h-screen">
+      <aside class="w-64 bg-amut-navy text-white flex-col hidden md:flex">
+        <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+          <img
+            src="../assets/img/logo.png"
+            class="h-10 w-auto rounded bg-white/90 p-0.5"
+            alt="Logo AMUT"
+          />
+          <div class="leading-tight">
+            <p class="font-bold">AMUT</p>
+            <p class="text-xs text-slate-300">Painel de Gestão</p>
+          </div>
+        </div>
+       <nav class="flex-1 px-3 py-5 space-y-1 text-sm">
+      <a href="dashboard.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard</a>
+      <a href="pacientes.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="users" class="w-5 h-5"></i> Pacientes</a>
+      <a href="responsaveis.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="user-check" class="w-5 h-5"></i> Responsáveis</a>
+      <a href="eventos.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="calendar" class="w-5 h-5"></i> Eventos</a>
+      <a href="contribuicoes.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="dollar-sign" class="w-5 h-5"></i> Contribuições</a>
+      <a href="usuarios.html" data-somente-admin class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="key-round" class="w-5 h-5"></i> Usuários</a>
+      <a href="perfil.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/10 font-semibold"><i data-lucide="user" class="w-5 h-5"></i> Meu Perfil</a>
+    </nav>
+        <button
+          onclick="logout()"
+          class="m-3 px-4 py-2.5 rounded-lg bg-amut-red/90 hover:bg-amut-red transition font-semibold text-sm"
+        >
+          Sair
+        </button>
+      </aside>
+
+      <div class="flex-1 flex flex-col">
+        <header
+          class="bg-white shadow-sm px-4 md:px-8 py-4 flex items-center justify-between"
+        >
+          <h1 class="text-lg md:text-xl font-bold text-amut-navy">
+            Meu Perfil
+          </h1>
+          <div class="flex items-center gap-3">
+            <div class="text-right hidden sm:block">
+              <p
+                id="usuario-nome"
+                class="text-sm font-semibold text-slate-700"
+              ></p>
+              <p id="usuario-cargo" class="text-xs text-slate-400"></p>
+            </div>
+            <div
+              id="usuario-iniciais"
+              class="w-10 h-10 rounded-full bg-amut-blue text-white flex items-center justify-center font-bold"
+            ></div>
+          </div>
+        </header>
+
+        <main class="flex-1 p-4 md:p-8">
+          <div class="max-w-xl mx-auto space-y-6">
+            <div
+              class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100"
+            >
+              <h2 class="font-bold text-amut-navy mb-4">Meus dados</h2>
+              <dl id="dados-perfil" class="space-y-2 text-sm text-slate-600">
+                <p class="text-slate-400">Carregando...</p>
+              </dl>
+            </div>
+
+            <div
+              class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100"
+            >
+              <h2 class="font-bold text-amut-navy mb-4">Alterar senha</h2>
+              <div
+                id="msg-senha"
+                class="hidden mb-4 text-sm rounded-lg px-4 py-3"
+              ></div>
+              <div class="space-y-4">
+                <div>
+                  <label class="lbl">Senha atual</label>
+                  <input type="password" id="senha-atual" class="inp" />
+                </div>
+                <div>
+                  <label class="lbl">Nova senha</label>
+                  <input
+                    type="password"
+                    id="senha-nova"
+                    class="inp"
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                </div>
+                <button
+                  onclick="alterarSenha()"
+                  class="bg-amut-navy hover:bg-amut-blue transition text-white font-semibold px-6 py-2.5 rounded-lg"
+                >
+                  Salvar nova senha
+                </button>
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+
+    <script src="../assets/js/config.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script src="../assets/js/api.js"></script>
+
+    <script>
+      lucide.createIcons();
+    </script>
+    
+    <script>
+      exigirLogin();
+      preencherUsuarioNoHeader();
+
+      async function carregarPerfil() {
+        try {
+          const u = await api.get("/auth/me");
+          document.getElementById("dados-perfil").innerHTML = `
+        <p><span class="font-semibold text-slate-700">Nome:</span> ${u.nome}</p>
+        <p><span class="font-semibold text-slate-700">E-mail:</span> ${u.email}</p>
+        <p><span class="font-semibold text-slate-700">Cargo:</span> ${formatarCargo(u.cargo)}</p>
+        <p><span class="font-semibold text-slate-700">Telefone:</span> ${u.telefone || "-"}</p>
+        <p><span class="font-semibold text-slate-700">Último acesso:</span> ${u.ultimo_login ? new Date(u.ultimo_login).toLocaleString("pt-BR") : "-"}</p>
+      `;
+        } catch (err) {
+          document.getElementById("dados-perfil").innerHTML =
+            `<p class="text-red-500">${err.message}</p>`;
+        }
+      }
+
+      async function alterarSenha() {
+        const msg = document.getElementById("msg-senha");
+        msg.classList.add("hidden");
+
+        const senhaAtual = document.getElementById("senha-atual").value;
+        const novaSenha = document.getElementById("senha-nova").value;
+
+        try {
+          const resultado = await api.post("/auth/alterar-senha", {
+            senhaAtual,
+            novaSenha,
+          });
+          msg.textContent = resultado.mensagem;
+          msg.className =
+            "mb-4 text-sm rounded-lg px-4 py-3 bg-green-50 text-green-700 border border-green-200";
+          msg.classList.remove("hidden");
+          document.getElementById("senha-atual").value = "";
+          document.getElementById("senha-nova").value = "";
+        } catch (err) {
+          msg.textContent = err.message;
+          msg.className =
+            "mb-4 text-sm rounded-lg px-4 py-3 bg-red-50 text-red-700 border border-red-200";
+          msg.classList.remove("hidden");
+        }
+      }
+
+      carregarPerfil();
+    </script>
+  </body>
+</html>

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Painel - AMUT</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: {
+    'amut-blue': '#00B8FE', 'amut-red': '#FF0F18', 'amut-purple': '#9E2FF8',
+    'amut-green': '#2CC73D', 'amut-navy': '#13266A'
+  } } } }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="../assets/img/logo.png">
+<style>body{font-family:'Poppins',sans-serif;}</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+<div class="flex min-h-screen">
+  <!-- Sidebar -->
+  <aside class="w-64 bg-amut-navy text-white flex-col hidden md:flex">
+    <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+      <img src="../assets/img/logo.png" class="h-10 w-auto rounded bg-white/90 p-0.5" alt="Logo AMUT">
+      <div class="leading-tight">
+        <p class="font-bold">AMUT</p>
+        <p class="text-xs text-slate-300">Painel de Gestão</p>
+      </div>
+    </div>
+    <nav class="flex-1 px-3 py-5 space-y-1 text-sm">
+      <a href="dashboard.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/10 font-semibold"> <i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard</a>
+      <a href="pacientes.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="users" class="w-5 h-5"></i> Pacientes</a>
+      <a href="responsaveis.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"> <i data-lucide="user-check" class="w-5 h-5"></i> Responsáveis</a>
+      <a href="eventos.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="calendar" class="w-5 h-5"></i> Eventos</a>
+      <a href="contribuicoes.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="dollar-sign" class="w-5 h-5"></i> Contribuições</a>
+      <a href="usuarios.html" data-somente-admin class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="key-round" class="w-5 h-5"></i> Usuários</a>
+      <a href="perfil.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="user" class="w-5 h-5"></i> Meu Perfil</a>
+    </nav>
+    <button onclick="logout()" class="m-3 px-4 py-2.5 rounded-lg bg-amut-red/90 hover:bg-amut-red transition font-semibold text-sm">Sair</button>
+  </aside>
+
+  <div class="flex-1 flex flex-col">
+    <!-- Topbar -->
+    <header class="bg-white shadow-sm px-4 md:px-8 py-4 flex items-center justify-between">
+      <h1 class="text-lg md:text-xl font-bold text-amut-navy">Visão geral</h1>
+      <div class="flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <p id="usuario-nome" class="text-sm font-semibold text-slate-700"></p>
+          <p id="usuario-cargo" class="text-xs text-slate-400"></p>
+        </div>
+        <div id="usuario-iniciais" class="w-10 h-10 rounded-full bg-amut-blue text-white flex items-center justify-center font-bold"></div>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 md:p-8 space-y-8">
+      <!-- Cards -->
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <p class="text-sm text-slate-500">Pacientes cadastrados</p>
+          <p id="card-total-pacientes" class="text-3xl font-extrabold text-amut-navy mt-1">–</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <p class="text-sm text-slate-500">Pacientes ativos</p>
+          <p id="card-total-ativos" class="text-3xl font-extrabold text-amut-green mt-1">–</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <p class="text-sm text-slate-500">Responsáveis</p>
+          <p id="card-total-responsaveis" class="text-3xl font-extrabold text-amut-purple mt-1">–</p>
+        </div>
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <p class="text-sm text-slate-500">Usuários do sistema</p>
+          <p id="card-total-usuarios" class="text-3xl font-extrabold text-amut-blue mt-1">–</p>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <a href="eventos.html" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition block">
+          <p class="text-sm text-slate-500">📅 Próximo evento</p>
+          <p id="card-proximo-evento" class="text-lg font-bold text-amut-navy mt-1">–</p>
+        </a>
+        <a href="contribuicoes.html" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition block">
+          <p class="text-sm text-slate-500">💰 Contribuições este mês</p>
+          <p id="card-contribuicoes-mes" class="text-lg font-bold text-amut-green mt-1">–</p>
+        </a>
+        <a href="pacientes.html?status=inativo" class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition block">
+          <p class="text-sm text-slate-500">⚠️ Desligados por faltas</p>
+          <p id="card-desligados-faltas" class="text-lg font-bold text-amut-red mt-1">–</p>
+        </a>
+      </div>
+
+      <div class="grid lg:grid-cols-3 gap-6">
+        <!-- Cadastros recentes -->
+        <div class="lg:col-span-2 bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h2 class="font-bold text-amut-navy mb-4">Cadastros recentes</h2>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="text-left text-slate-400 border-b">
+                  <th class="py-2 pr-4">Nome</th>
+                  <th class="py-2 pr-4">Status</th>
+                  <th class="py-2 pr-4">Cadastrado em</th>
+                </tr>
+              </thead>
+              <tbody id="tabela-recentes">
+                <tr><td colspan="3" class="py-6 text-center text-slate-400">Carregando...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Distribuição por nível de suporte -->
+        <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
+          <h2 class="font-bold text-amut-navy mb-4">Nível de suporte</h2>
+          <div id="lista-niveis" class="space-y-3 text-sm">
+            <p class="text-slate-400">Carregando...</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="text-center">
+        <a href="pacientes.html" class="inline-block bg-amut-navy hover:bg-amut-blue transition text-white font-semibold px-6 py-3 rounded-lg shadow">
+          + Novo cadastro de paciente
+        </a>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script src="../assets/js/config.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/api.js"></script>
+
+<script>
+  lucide.createIcons();
+</script>
+    
+<script>
+  exigirLogin();
+  preencherUsuarioNoHeader();
+
+  async function carregarResumo() {
+    try {
+      const dados = await api.get('/dashboard/resumo');
+
+      document.getElementById('card-total-pacientes').textContent = dados.total_pacientes;
+      document.getElementById('card-total-ativos').textContent = dados.total_ativos;
+      document.getElementById('card-total-responsaveis').textContent = dados.total_responsaveis;
+      document.getElementById('card-total-usuarios').textContent = dados.total_usuarios;
+
+      document.getElementById('card-proximo-evento').textContent = dados.proximo_evento
+        ? `${dados.proximo_evento.titulo} — ${formatarData(dados.proximo_evento.data_evento)}`
+        : 'Nenhum evento agendado';
+
+      document.getElementById('card-contribuicoes-mes').textContent =
+        Number(dados.total_contribuicoes_mes || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+      document.getElementById('card-desligados-faltas').textContent = `${dados.total_desligados_faltas || 0} paciente(s)`;
+
+      const tbody = document.getElementById('tabela-recentes');
+      tbody.innerHTML = '';
+      if (dados.cadastros_recentes.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="3" class="py-6 text-center text-slate-400">Nenhum cadastro ainda.</td></tr>';
+      } else {
+        dados.cadastros_recentes.forEach(p => {
+          const tr = document.createElement('tr');
+          tr.className = 'border-b last:border-0';
+          tr.innerHTML = `
+            <td class="py-2 pr-4 font-medium text-slate-700">${p.nome}</td>
+            <td class="py-2 pr-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ${corStatus(p.status)}">${p.status}</span></td>
+            <td class="py-2 pr-4 text-slate-500">${formatarData(p.criado_em)}</td>`;
+          tbody.appendChild(tr);
+        });
+      }
+
+      const niveisContainer = document.getElementById('lista-niveis');
+      niveisContainer.innerHTML = '';
+      const nomesNivel = { 0: 'Não informado', 1: 'Nível 1', 2: 'Nível 2', 3: 'Nível 3' };
+      dados.por_nivel_suporte.forEach(n => {
+        const div = document.createElement('div');
+        div.innerHTML = `
+          <div class="flex justify-between mb-1">
+            <span class="text-slate-600">${nomesNivel[n.nivel_suporte] || n.nivel_suporte}</span>
+            <span class="font-semibold text-slate-700">${n.total}</span>
+          </div>`;
+        niveisContainer.appendChild(div);
+      });
+    } catch (err) {
+      console.error(err);
+    }
+  }
+
+  function corStatus(status) {
+    if (status === 'ativo') return 'bg-green-100 text-green-700';
+    if (status === 'inativo') return 'bg-yellow-100 text-yellow-700';
+    return 'bg-red-100 text-red-700';
+  }
+
+  function formatarData(data) {
+    if (!data) return '-';
+    const d = new Date(data);
+    return d.toLocaleDateString('pt-BR');
+  }
+
+  carregarResumo();
+</script>
+</body>
+</html>

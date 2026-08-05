@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Responsáveis - Painel AMUT</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script>
+  tailwind.config = { theme: { extend: { colors: {
+    'amut-blue': '#00B8FE', 'amut-red': '#FF0F18', 'amut-purple': '#9E2FF8',
+    'amut-green': '#2CC73D', 'amut-navy': '#13266A'
+  } } } }
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="icon" href="../assets/img/logo.png">
+<style>body{font-family:'Poppins',sans-serif;} .lbl{display:block;font-size:.8rem;font-weight:500;color:#475569;margin-bottom:.25rem;} .inp{width:100%;padding:.55rem .75rem;border:1px solid #cbd5e1;border-radius:.5rem;font-size:.875rem;} .inp:focus{outline:none;box-shadow:0 0 0 2px #00B8FE;border-color:#00B8FE;}</style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+<div class="flex min-h-screen">
+  <aside class="w-64 bg-amut-navy text-white flex-col hidden md:flex">
+    <div class="flex items-center gap-3 px-6 py-5 border-b border-white/10">
+      <img src="../assets/img/logo.png" class="h-10 w-auto rounded bg-white/90 p-0.5" alt="Logo AMUT">
+      <div class="leading-tight"><p class="font-bold">AMUT</p><p class="text-xs text-slate-300">Painel de Gestão</p></div>
+    </div>
+    <nav class="flex-1 px-3 py-5 space-y-1 text-sm">
+      <a href="dashboard.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="layout-dashboard" class="w-5 h-5"></i> Dashboard</a>
+      <a href="pacientes.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="users" class="w-5 h-5"></i> Pacientes</a>
+      <a href="responsaveis.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-white/10 font-semibold"><i data-lucide="user-check" class="w-5 h-5"></i> Responsáveis</a>
+      <a href="eventos.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="calendar" class="w-5 h-5"></i> Eventos</a>
+      <a href="contribuicoes.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="dollar-sign" class="w-5 h-5"></i> Contribuições</a>
+      <a href="usuarios.html" data-somente-admin class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="key-round" class="w-5 h-5"></i> Usuários</a>
+      <a href="perfil.html" class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-white/10 transition"><i data-lucide="user" class="w-5 h-5"></i> Meu Perfil</a>
+    </nav>
+    <button onclick="logout()" class="m-3 px-4 py-2.5 rounded-lg bg-amut-red/90 hover:bg-amut-red transition font-semibold text-sm">Sair</button>
+  </aside>
+
+  <div class="flex-1 flex flex-col">
+    <header class="bg-white shadow-sm px-4 md:px-8 py-4 flex items-center justify-between">
+      <h1 class="text-lg md:text-xl font-bold text-amut-navy">Responsáveis</h1>
+      <div class="flex items-center gap-3">
+        <div class="text-right hidden sm:block">
+          <p id="usuario-nome" class="text-sm font-semibold text-slate-700"></p>
+          <p id="usuario-cargo" class="text-xs text-slate-400"></p>
+        </div>
+        <div id="usuario-iniciais" class="w-10 h-10 rounded-full bg-amut-blue text-white flex items-center justify-center font-bold"></div>
+      </div>
+    </header>
+
+    <main class="flex-1 p-4 md:p-8 space-y-6">
+      <div class="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+        <input id="filtro-busca" type="text" placeholder="Buscar por nome, CPF ou paciente vinculado..."
+          class="w-full px-4 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-amut-blue">
+        <p class="text-xs text-slate-400 mt-2">Para adicionar um novo responsável, edite o cadastro do paciente correspondente em <strong>Pacientes</strong>.</p>
+      </div>
+
+      <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead class="bg-slate-50 text-slate-500">
+              <tr class="text-left">
+                <th class="py-3 px-4">Nome</th>
+                <th class="py-3 px-4">Parentesco</th>
+                <th class="py-3 px-4">Paciente vinculado</th>
+                <th class="py-3 px-4">Telefone</th>
+                <th class="py-3 px-4">CPF</th>
+                <th class="py-3 px-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tabela-responsaveis">
+              <tr><td colspan="6" class="py-8 text-center text-slate-400">Carregando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- Modal de edição rápida -->
+<div id="modal-responsavel" class="hidden fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+  <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg">
+    <div class="flex items-center justify-between px-6 py-4 border-b">
+      <h2 class="text-lg font-bold text-amut-navy">Editar Responsável</h2>
+      <button onclick="fecharModalResponsavel()" class="text-slate-400 hover:text-slate-700 text-2xl leading-none">&times;</button>
+    </div>
+    <div class="px-6 py-5 grid md:grid-cols-2 gap-4">
+      <input type="hidden" id="r-id">
+      <div class="md:col-span-2"><label class="lbl">Nome</label><input id="r-nome" class="inp"></div>
+      <div><label class="lbl">Parentesco</label>
+        <select id="r-parentesco" class="inp"><option>Pai</option><option>Mãe</option><option>Responsável Legal</option><option>Outro</option></select>
+      </div>
+      <div><label class="lbl">CPF</label><input id="r-cpf" class="inp"></div>
+      <div><label class="lbl">Telefone</label><input id="r-telefone" class="inp"></div>
+      <div><label class="lbl">E-mail</label><input id="r-email" class="inp"></div>
+      <div><label class="lbl">Profissão</label><input id="r-profissao" class="inp"></div>
+      <div><label class="lbl">Empresa</label><input id="r-empresa" class="inp"></div>
+      <div class="md:col-span-2"><label class="lbl">Endereço</label><input id="r-endereco" class="inp"></div>
+    </div>
+    <div class="flex justify-end gap-3 px-6 py-4 border-t bg-slate-50 rounded-b-2xl">
+      <button onclick="fecharModalResponsavel()" class="px-5 py-2.5 rounded-lg border border-slate-300 text-slate-600 hover:bg-slate-100 font-medium">Cancelar</button>
+      <button onclick="salvarResponsavel()" class="px-6 py-2.5 rounded-lg bg-amut-navy hover:bg-amut-blue transition text-white font-semibold">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<script src="../assets/js/config.js"></script>
+<script src="../assets/js/auth.js"></script>
+<script src="../assets/js/api.js"></script>
+
+<script>
+  lucide.createIcons();
+</script>
+
+<script>
+  exigirLogin();
+  preencherUsuarioNoHeader();
+  const usuarioLogado = getUsuarioLogado();
+
+  async function carregarResponsaveis() {
+    const tbody = document.getElementById('tabela-responsaveis');
+    tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">Carregando...</td></tr>';
+    const busca = document.getElementById('filtro-busca').value.trim();
+
+    try {
+      const params = new URLSearchParams({ busca });
+      const lista = await api.get(`/responsaveis?${params.toString()}`);
+
+      if (lista.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-8 text-center text-slate-400">Nenhum responsável encontrado.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = '';
+      lista.forEach((r) => {
+        const podeExcluir = ['admin', 'presidente'].includes(usuarioLogado.cargo);
+        const tr = document.createElement('tr');
+        tr.className = 'border-t hover:bg-slate-50';
+        tr.innerHTML = `
+          <td class="py-3 px-4 font-medium text-slate-700">${r.nome}${r.principal ? ' <span class="text-xs text-amut-blue font-semibold">★ principal</span>' : ''}</td>
+          <td class="py-3 px-4">${r.parentesco}</td>
+          <td class="py-3 px-4">${r.paciente_nome}</td>
+          <td class="py-3 px-4">${r.telefone || '-'}</td>
+          <td class="py-3 px-4">${r.cpf || '-'}</td>
+          <td class="py-3 px-4 text-right space-x-2 whitespace-nowrap">
+            <button onclick="abrirModalResponsavel(${r.id})" class="text-amut-blue hover:underline text-xs font-semibold">Editar</button>
+            ${podeExcluir ? `<button onclick="excluirResponsavel(${r.id})" class="text-amut-red hover:underline text-xs font-semibold">Excluir</button>` : ''}
+          </td>`;
+        tbody.appendChild(tr);
+      });
+    } catch (err) {
+      tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-500">${err.message}</td></tr>`;
+    }
+  }
+
+  async function abrirModalResponsavel(id) {
+    try {
+      const r = await api.get(`/responsaveis/${id}`);
+      document.getElementById('r-id').value = r.id;
+      document.getElementById('r-nome').value = r.nome || '';
+      document.getElementById('r-parentesco').value = r.parentesco || 'Responsável Legal';
+      document.getElementById('r-cpf').value = r.cpf || '';
+      document.getElementById('r-telefone').value = r.telefone || '';
+      document.getElementById('r-email').value = r.email || '';
+      document.getElementById('r-profissao').value = r.profissao || '';
+      document.getElementById('r-empresa').value = r.empresa || '';
+      document.getElementById('r-endereco').value = r.endereco || '';
+      document.getElementById('modal-responsavel').classList.remove('hidden');
+    } catch (err) {
+      alert('Erro ao carregar responsável: ' + err.message);
+    }
+  }
+
+  function fecharModalResponsavel() {
+    document.getElementById('modal-responsavel').classList.add('hidden');
+  }
+
+  async function salvarResponsavel() {
+    const id = document.getElementById('r-id').value;
+    const dados = {
+      nome: document.getElementById('r-nome').value,
+      parentesco: document.getElementById('r-parentesco').value,
+      cpf: document.getElementById('r-cpf').value,
+      telefone: document.getElementById('r-telefone').value,
+      email: document.getElementById('r-email').value,
+      profissao: document.getElementById('r-profissao').value,
+      empresa: document.getElementById('r-empresa').value,
+      endereco: document.getElementById('r-endereco').value
+    };
+    try {
+      await api.put(`/responsaveis/${id}`, dados);
+      fecharModalResponsavel();
+      carregarResponsaveis();
+    } catch (err) {
+      alert('Erro ao salvar: ' + err.message);
+    }
+  }
+
+  async function excluirResponsavel(id) {
+    if (!confirm('Tem certeza que deseja excluir este responsável?')) return;
+    try {
+      await api.delete(`/responsaveis/${id}`);
+      carregarResponsaveis();
+    } catch (err) {
+      alert('Erro ao excluir: ' + err.message);
+    }
+  }
+
+  let timerBusca;
+  document.getElementById('filtro-busca').addEventListener('input', () => {
+    clearTimeout(timerBusca);
+    timerBusca = setTimeout(carregarResponsaveis, 400);
+  });
+
+  carregarResponsaveis();
+</script>
+</body>
+</html>
