@@ -6,6 +6,7 @@ preencherUsuarioNoHeader();
 let paginaAtualContrib = 1;
 let totalPaginasContrib = 1;
 let listaResponsaveisCache = [];
+let buscaResponsavel = null;
 
 function formatarMoedaBR(valor) {
   return Number(valor || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -20,6 +21,33 @@ function formatarMesReferencia(mes) {
   const [ano, m] = mes.split('-');
   const nomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
   return `${nomes[parseInt(m) - 1]}/${ano}`;
+}
+
+function garantirBuscaResponsavel() {
+  if (buscaResponsavel) return buscaResponsavel;
+
+  buscaResponsavel = criarBuscaSelect({
+    container: '#c-responsavel-busca',
+    placeholder: 'Buscar responsável por nome ou CPF...',
+    emptyLabel: '— Contribuinte avulso (não vinculado) —',
+    allowEmpty: true,
+    getLabel: (r) => r.nome,
+    getSubLabel: (r) => {
+      const partes = [];
+      if (r.cpf) partes.push(`CPF: ${formatarCpfBusca(r.cpf)}`);
+      if (r.paciente_nome) partes.push(`resp. de ${r.paciente_nome}`);
+      return partes.join(' · ');
+    },
+    getSearchText: (r) => `${r.nome || ''} ${r.cpf || ''} ${r.paciente_nome || ''}`,
+    onChange: (responsavel) => {
+      if (responsavel) {
+        document.getElementById('c-nome').value = responsavel.nome;
+        document.getElementById('c-telefone').value = responsavel.telefone || '';
+      }
+    }
+  });
+
+  return buscaResponsavel;
 }
 
 // ---------- Resumo (cards) ----------
@@ -95,34 +123,17 @@ document.getElementById('filtro-busca').addEventListener('input', () => {
 });
 document.getElementById('filtro-mes').addEventListener('change', () => { paginaAtualContrib = 1; carregarContribuicoes(); });
 
-// ---------- Carrega lista de responsáveis para o select do modal ----------
+// ---------- Carrega lista de responsáveis para a busca do modal ----------
 async function carregarResponsaveisSelect() {
+  const bs = garantirBuscaResponsavel();
   try {
     listaResponsaveisCache = await api.get('/responsaveis');
-    const select = document.getElementById('c-responsavel');
-    select.innerHTML = '<option value="">— Contribuinte avulso (não vinculado) —</option>';
-    listaResponsaveisCache.forEach((r) => {
-      const opt = document.createElement('option');
-      opt.value = r.id;
-      opt.dataset.pacienteId = r.paciente_id;
-      opt.textContent = `${r.nome} (responsável de ${r.paciente_nome})`;
-      select.appendChild(opt);
-    });
+    bs.setItems(listaResponsaveisCache);
   } catch (err) {
     console.error(err);
+    bs.setItems([]);
   }
 }
-
-// Ao escolher um responsável, preenche automaticamente nome/telefone
-document.getElementById('c-responsavel').addEventListener('change', (e) => {
-  const opt = e.target.selectedOptions[0];
-  if (!opt || !opt.value) return;
-  const responsavel = listaResponsaveisCache.find((r) => String(r.id) === opt.value);
-  if (responsavel) {
-    document.getElementById('c-nome').value = responsavel.nome;
-    document.getElementById('c-telefone').value = responsavel.telefone || '';
-  }
-});
 
 // ---------- Modal: Nova/Editar ----------
 function hojeISO() {
@@ -133,7 +144,7 @@ async function abrirModalNovaContribuicao() {
   await carregarResponsaveisSelect();
   document.getElementById('modal-contribuicao-titulo').textContent = 'Nova Contribuição';
   document.getElementById('c-id').value = '';
-  document.getElementById('c-responsavel').value = '';
+  buscaResponsavel.clear();
   document.getElementById('c-nome').value = '';
   document.getElementById('c-telefone').value = '';
   document.getElementById('c-forma').value = 'PIX';
@@ -151,7 +162,7 @@ async function abrirModalEditarContribuicao(id) {
     const c = await api.get(`/contribuicoes/${id}`);
     document.getElementById('modal-contribuicao-titulo').textContent = 'Editar Contribuição';
     document.getElementById('c-id').value = c.id;
-    document.getElementById('c-responsavel').value = c.responsavel_id || '';
+    buscaResponsavel.setValue(c.responsavel_id || '');
     document.getElementById('c-nome').value = c.nome_contribuinte;
     document.getElementById('c-telefone').value = c.telefone_contribuinte || '';
     document.getElementById('c-forma').value = c.forma_pagamento;
@@ -184,14 +195,11 @@ async function salvarContribuicao() {
     return;
   }
 
-  const responsavelSelect = document.getElementById('c-responsavel');
-  const opt = responsavelSelect.selectedOptions[0];
-  const responsavelId = responsavelSelect.value || null;
-  const pacienteId = opt && opt.dataset.pacienteId ? opt.dataset.pacienteId : null;
+  const responsavel = buscaResponsavel ? buscaResponsavel.getSelected() : null;
 
   const dados = {
-    responsavel_id: responsavelId,
-    paciente_id: pacienteId,
+    responsavel_id: responsavel ? responsavel.id : null,
+    paciente_id: responsavel ? responsavel.paciente_id : null,
     nome_contribuinte: nome,
     telefone_contribuinte: document.getElementById('c-telefone').value || null,
     valor: parseFloat(valor),

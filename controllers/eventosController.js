@@ -49,7 +49,7 @@ async function buscarPorId(req, res) {
 
     // Pacientes ativos + já desligados que já tenham alguma presença registrada neste evento (edge case)
     const [pacientes] = await pool.query(
-      `SELECT p.id, p.nome, p.status,
+      `SELECT p.id, p.nome, p.cpf, p.status,
               ep.presente, ep.justificativa
        FROM pacientes p
        LEFT JOIN evento_presencas ep ON ep.paciente_id = p.id AND ep.evento_id = ?

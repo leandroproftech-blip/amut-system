@@ -167,6 +167,8 @@ async function excluirEvento(id, titulo) {
 // ---------- Modal de Presença ----------
 async function abrirModalPresenca(eventoId) {
   eventoPresencaAtualId = eventoId;
+  const filtroBusca = document.getElementById('filtro-presenca-busca');
+  if (filtroBusca) filtroBusca.value = '';
   document.getElementById('lista-presencas').innerHTML = '<p class="text-slate-400 text-sm">Carregando pacientes...</p>';
   document.getElementById('erro-form-presenca').classList.add('hidden');
   document.getElementById('modal-presenca').classList.remove('hidden');
@@ -180,18 +182,23 @@ async function abrirModalPresenca(eventoId) {
     const container = document.getElementById('lista-presencas');
     if (evento.pacientes.length === 0) {
       container.innerHTML = '<p class="text-slate-400 text-sm">Nenhum paciente ativo cadastrado.</p>';
+      atualizarInfoFiltroPresenca(0, 0);
       return;
     }
 
     container.innerHTML = '';
     evento.pacientes.forEach((p) => {
       const presenteInicial = p.presente === null || p.presente === undefined ? 1 : p.presente;
+      const cpfFmt = p.cpf ? formatarCpfPresenca(p.cpf) : '';
       const div = document.createElement('div');
-      div.className = 'flex items-center justify-between gap-3 border border-slate-200 rounded-lg px-4 py-2.5';
+      div.className = 'item-presenca flex items-center justify-between gap-3 border border-slate-200 rounded-lg px-4 py-2.5';
       div.dataset.pacienteId = p.id;
+      div.dataset.nome = (p.nome || '').toLowerCase();
+      div.dataset.cpf = String(p.cpf || '').replace(/\D/g, '');
       div.innerHTML = `
-        <div class="flex-1">
+        <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-slate-700">${p.nome}</p>
+          ${cpfFmt ? `<p class="text-xs text-slate-400">CPF: ${cpfFmt}</p>` : ''}
           <input type="text" placeholder="Justificativa (opcional)" value="${p.justificativa || ''}"
             class="justificativa-input text-xs mt-1 w-full border-b border-slate-200 focus:outline-none focus:border-amut-blue ${presenteInicial ? 'hidden' : ''}">
         </div>
@@ -202,10 +209,51 @@ async function abrirModalPresenca(eventoId) {
       div.dataset.presente = presenteInicial ? '1' : '0';
       container.appendChild(div);
     });
+    filtrarListaPresencas();
   } catch (err) {
     document.getElementById('lista-presencas').innerHTML = `<p class="text-red-500 text-sm">${err.message}</p>`;
   }
 }
+
+function formatarCpfPresenca(cpf) {
+  const d = String(cpf || '').replace(/\D/g, '');
+  if (d.length !== 11) return cpf || '';
+  return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+function filtrarListaPresencas() {
+  const input = document.getElementById('filtro-presenca-busca');
+  const termo = (input ? input.value : '').trim().toLowerCase();
+  const termoDigitos = termo.replace(/\D/g, '');
+  const itens = document.querySelectorAll('#lista-presencas .item-presenca');
+  let visiveis = 0;
+
+  itens.forEach((div) => {
+    const nome = div.dataset.nome || '';
+    const cpf = div.dataset.cpf || '';
+    const bate = !termo
+      || nome.includes(termo)
+      || (termoDigitos.length >= 3 && cpf.includes(termoDigitos));
+    div.classList.toggle('hidden', !bate);
+    if (bate) visiveis += 1;
+  });
+
+  atualizarInfoFiltroPresenca(visiveis, itens.length);
+}
+
+function atualizarInfoFiltroPresenca(visiveis, total) {
+  const info = document.getElementById('info-filtro-presenca');
+  if (!info) return;
+  if (!total) {
+    info.textContent = '';
+    return;
+  }
+  info.textContent = visiveis === total
+    ? `${total} paciente(s)`
+    : `${visiveis} de ${total} paciente(s)`;
+}
+
+document.getElementById('filtro-presenca-busca')?.addEventListener('input', filtrarListaPresencas);
 
 function marcarPresenca(pacienteId, presente) {
   const div = document.querySelector(`#lista-presencas [data-paciente-id="${pacienteId}"]`);
@@ -228,12 +276,12 @@ function marcarPresenca(pacienteId, presente) {
 }
 
 function marcarTodosPresentes() {
-  document.querySelectorAll('#lista-presencas [data-paciente-id]').forEach((div) => {
+  document.querySelectorAll('#lista-presencas .item-presenca:not(.hidden)').forEach((div) => {
     marcarPresenca(parseInt(div.dataset.pacienteId), 1);
   });
 }
 function marcarTodosAusentes() {
-  document.querySelectorAll('#lista-presencas [data-paciente-id]').forEach((div) => {
+  document.querySelectorAll('#lista-presencas .item-presenca:not(.hidden)').forEach((div) => {
     marcarPresenca(parseInt(div.dataset.pacienteId), 0);
   });
 }
