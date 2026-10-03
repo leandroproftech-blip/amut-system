@@ -8,11 +8,12 @@ let totalPaginas = 1;
 let contadorResponsaveis = 0;
 let fotoBase64Atual = null;
 let fotoAlterada = false;
+const pacientesSelecionados = new Map();
 
 // ---------- Listagem ----------
 async function carregarPacientes() {
   const tbody = document.getElementById('tabela-pacientes');
-  tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-400">Carregando...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="9" class="py-8 text-center text-slate-400">Carregando...</td></tr>';
 
   const busca = document.getElementById('filtro-busca').value.trim();
   const status = document.getElementById('filtro-status').value;
@@ -26,15 +27,20 @@ async function carregarPacientes() {
       `${resultado.total} paciente(s) · página ${resultado.pagina} de ${totalPaginas}`;
 
     if (resultado.dados.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="8" class="py-8 text-center text-slate-400">Nenhum paciente encontrado.</td></tr>';
+      tbody.innerHTML = '<tr><td colspan="9" class="py-8 text-center text-slate-400">Nenhum paciente encontrado.</td></tr>';
+      atualizarCheckboxPagina();
       return;
     }
 
     tbody.innerHTML = '';
     resultado.dados.forEach((p) => {
+      const selecionado = pacientesSelecionados.has(p.id);
       const tr = document.createElement('tr');
-      tr.className = 'border-t hover:bg-slate-50';
+      tr.className = `border-t hover:bg-slate-50 ${selecionado ? 'bg-sky-50' : ''}`;
       tr.innerHTML = `
+        <td class="py-3 pl-4 pr-1">
+          <input type="checkbox" class="chk-paciente w-4 h-4 align-middle accent-amut-navy cursor-pointer" data-id="${p.id}" ${selecionado ? 'checked' : ''} aria-label="Selecionar paciente">
+        </td>
         <td class="py-3 px-4 text-slate-500">${p.numero_inscricao || '-'}</td>
         <td class="py-3 px-4 font-medium text-slate-700">${p.nome}</td>
         <td class="py-3 px-4">${p.sexo || '-'}</td>
@@ -51,13 +57,62 @@ async function carregarPacientes() {
             ${botaoAcaoIcone('trash-2', 'Excluir', 'text-amut-red hover:bg-red-50', `excluirPaciente(${p.id}, '${p.nome.replace(/'/g, "\\'")}')`)}
           </div>
         </td>`;
+      tr.querySelector('.chk-paciente').dataset.nome = p.nome;
       tbody.appendChild(tr);
     });
+    atualizarCheckboxPagina();
     if (window.lucide) lucide.createIcons();
   } catch (err) {
-    tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-red-500">${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" class="py-8 text-center text-red-500">${err.message}</td></tr>`;
   }
 }
+
+// ---------- Seleção para impressão em lote ----------
+function marcarPaciente(checkbox, marcado) {
+  const id = Number(checkbox.dataset.id);
+  checkbox.checked = marcado;
+  checkbox.closest('tr').classList.toggle('bg-sky-50', marcado);
+  if (marcado) pacientesSelecionados.set(id, checkbox.dataset.nome);
+  else pacientesSelecionados.delete(id);
+}
+
+function atualizarCheckboxPagina() {
+  const checkboxes = [...document.querySelectorAll('#tabela-pacientes .chk-paciente')];
+  const marcados = checkboxes.filter((c) => c.checked).length;
+  const todos = document.getElementById('selecionar-pagina');
+  todos.checked = checkboxes.length > 0 && marcados === checkboxes.length;
+  todos.indeterminate = marcados > 0 && marcados < checkboxes.length;
+  atualizarBarraSelecao();
+}
+
+function atualizarBarraSelecao() {
+  const total = pacientesSelecionados.size;
+  document.getElementById('barra-selecao').classList.toggle('hidden', total === 0);
+  const folhas = Math.ceil(total / 4);
+  document.getElementById('texto-selecao').textContent =
+    `${total} paciente(s) selecionado(s) · ${folhas} folha(s) de carteirinhas`;
+}
+
+function limparSelecaoPacientes() {
+  pacientesSelecionados.clear();
+  document.querySelectorAll('#tabela-pacientes .chk-paciente').forEach((c) => marcarPaciente(c, false));
+  atualizarCheckboxPagina();
+}
+
+function imprimirCarteirinhasSelecionadas() {
+  imprimirCarteirinhasLote([...pacientesSelecionados.keys()]);
+}
+
+document.getElementById('tabela-pacientes').addEventListener('change', (e) => {
+  if (!e.target.classList.contains('chk-paciente')) return;
+  marcarPaciente(e.target, e.target.checked);
+  atualizarCheckboxPagina();
+});
+
+document.getElementById('selecionar-pagina').addEventListener('change', (e) => {
+  document.querySelectorAll('#tabela-pacientes .chk-paciente').forEach((c) => marcarPaciente(c, e.target.checked));
+  atualizarCheckboxPagina();
+});
 
 function botaoAcaoIcone(icone, rotulo, classes, onclick) {
   return `
@@ -388,6 +443,7 @@ async function excluirPaciente(id, nome) {
   if (!confirm(`Tem certeza que deseja excluir o cadastro de "${nome}"? Esta ação não pode ser desfeita.`)) return;
   try {
     await api.delete(`/pacientes/${id}`);
+    pacientesSelecionados.delete(id);
     carregarPacientes();
   } catch (err) {
     alert('Erro ao excluir: ' + err.message);

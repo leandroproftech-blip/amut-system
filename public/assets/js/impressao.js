@@ -705,40 +705,91 @@ function gerarVersoCarteira(p) {
   `);
 }
 
-async function imprimirCarteirinha(pacienteId) {
-  try {
-    const p = await api.get(`/pacientes/${pacienteId}`);
-    const logo = await obterLogoDataUrl();
+const CARTEIRAS_POR_FOLHA = 4;
 
-    const janela = window.open('', '_blank', 'width=1000,height=650');
+async function buscarPacientesEmLotes(ids, tamanhoLote = 4) {
+  const pacientes = [];
+  for (let i = 0; i < ids.length; i += tamanhoLote) {
+    const lote = ids.slice(i, i + tamanhoLote);
+    pacientes.push(...await Promise.all(lote.map((id) => api.get(`/pacientes/${id}`))));
+  }
+  return pacientes;
+}
+
+function gerarFolhasCarteiras(pacientes, logo) {
+  const folhas = [];
+  for (let i = 0; i < pacientes.length; i += CARTEIRAS_POR_FOLHA) {
+    const linhas = pacientes.slice(i, i + CARTEIRAS_POR_FOLHA).map((p) => `
+      <div class="linha">
+        ${gerarFrenteCarteira(p, logo)}
+        ${gerarVersoCarteira(p)}
+      </div>`).join('');
+    folhas.push(`<section class="folha">${linhas}</section>`);
+  }
+  return folhas.join('');
+}
+
+function imprimirCarteirinha(pacienteId) {
+  return imprimirCarteirinhasLote([pacienteId]);
+}
+
+async function imprimirCarteirinhasLote(ids) {
+  if (!ids || ids.length === 0) return;
+
+  // Abre a janela já no clique para o navegador não bloquear o pop-up enquanto os dados carregam
+  const janela = window.open('', '_blank', 'width=1000,height=750');
+  if (!janela) {
+    alert('O navegador bloqueou a janela de impressão. Permita pop-ups para este site e tente de novo.');
+    return;
+  }
+  janela.document.write(`<p style="font-family:Arial;padding:24px;color:#475569;">Gerando ${ids.length} carteirinha(s)...</p>`);
+  janela.document.close();
+
+  try {
+    const [pacientes, logo] = await Promise.all([buscarPacientesEmLotes(ids), obterLogoDataUrl()]);
+    const totalFolhas = Math.ceil(pacientes.length / CARTEIRAS_POR_FOLHA);
+    const titulo = pacientes.length === 1
+      ? `Carteirinha - ${escHtmlCarteira(pacientes[0].nome)}`
+      : `Carteirinhas (${pacientes.length})`;
+
+    janela.document.open();
     janela.document.write(`
       <!DOCTYPE html>
       <html lang="pt-BR">
       <head>
         <meta charset="UTF-8">
-        <title>Carteirinha - ${escHtmlCarteira(p.nome)}</title>
+        <title>${titulo}</title>
         <link rel="preconnect" href="https://fonts.googleapis.com">
         <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=block" rel="stylesheet">
         <style>
-          @page { size: A4; margin: 12mm; }
+          @page { size: A4; margin: 6mm; }
           * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-          body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 10mm 0; color: #111; }
-          .pagina { display: flex; justify-content: center; gap: 8mm; flex-wrap: wrap; }
-          .rotulo { font-size: 9pt; color: #64748b; text-align: center; margin-bottom: 2mm; }
+          body { font-family: Arial, Helvetica, sans-serif; margin: 0; color: #111; background: #e2e8f0; }
+          .aviso { text-align: center; font-size: 9pt; color: #475569; margin: 6mm 0 4mm; }
+          .folha {
+            width: 210mm; min-height: 297mm; margin: 0 auto 8mm; padding: 6mm; background: #fff;
+            display: flex; flex-direction: column; align-items: center; gap: 4mm;
+            box-shadow: 0 2px 10px rgba(0,0,0,.15);
+          }
+          .linha { display: flex; gap: 4mm; }
           .carteira { display: block; flex-shrink: 0; }
-          .aviso { text-align: center; font-size: 8.5pt; color: #94a3b8; margin-top: 8mm; }
-          @media print { .aviso, .rotulo { display: none; } body { padding: 0; } }
+          @media print {
+            body { background: #fff; }
+            .aviso { display: none; }
+            .folha { width: auto; min-height: 0; margin: 0; padding: 0; box-shadow: none; break-after: page; page-break-after: always; }
+            .folha:last-of-type { break-after: auto; page-break-after: auto; }
+          }
         </style>
       </head>
       <body>
-        <div class="pagina">
-          <div><div class="rotulo">Frente</div>${gerarFrenteCarteira(p, logo)}</div>
-          <div><div class="rotulo">Verso</div>${gerarVersoCarteira(p)}</div>
-        </div>
-        <p class="aviso">Na janela de impressão, deixe a escala em 100% e ative "Gráficos de plano de fundo" para sair colorido.</p>
+        <p class="aviso">
+          ${pacientes.length} carteirinha(s) em ${totalFolhas} folha(s) A4.
+          Na impressão, deixe a escala em 100% e ative "Gráficos de plano de fundo".
+        </p>
+        ${gerarFolhasCarteiras(pacientes, logo)}
         <script>
           window.onload = function () {
-            var imprimir = function () { setTimeout(function () { window.print(); }, 300); };
+            var imprimir = function () { setTimeout(function () { window.print(); }, 400); };
             if (document.fonts && document.fonts.ready) document.fonts.ready.then(imprimir); else imprimir();
           };
         </script>
@@ -747,7 +798,8 @@ async function imprimirCarteirinha(pacienteId) {
     `);
     janela.document.close();
   } catch (err) {
-    alert('Erro ao gerar carteirinha: ' + err.message);
+    janela.close();
+    alert('Erro ao gerar carteirinhas: ' + err.message);
   }
 }
 

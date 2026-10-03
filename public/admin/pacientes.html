@@ -76,12 +76,26 @@
         </button>
       </div>
 
+      <!-- Barra de seleção para impressão em lote -->
+      <div id="barra-selecao" class="hidden bg-amut-navy text-white rounded-2xl px-4 py-3 shadow-sm flex flex-wrap items-center justify-between gap-3">
+        <span id="texto-selecao" class="text-sm font-medium"></span>
+        <div class="flex flex-wrap gap-2">
+          <button onclick="limparSelecaoPacientes()" class="px-4 py-2 rounded-lg text-sm hover:bg-white/10 transition">Limpar seleção</button>
+          <button onclick="imprimirCarteirinhasSelecionadas()" class="px-4 py-2 rounded-lg bg-white text-amut-navy text-sm font-semibold hover:bg-slate-100 transition inline-flex items-center gap-2">
+            <i data-lucide="id-card" class="w-4 h-4"></i> Imprimir carteirinhas
+          </button>
+        </div>
+      </div>
+
       <!-- Tabela -->
       <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div class="overflow-x-auto">
           <table class="w-full text-sm">
             <thead class="bg-slate-50 text-slate-500">
               <tr class="text-left">
+                <th class="py-3 pl-4 pr-1 w-8">
+                  <input type="checkbox" id="selecionar-pagina" title="Selecionar todos desta página" class="w-4 h-4 align-middle accent-amut-navy cursor-pointer">
+                </th>
                 <th class="py-3 px-4">Nº</th>
                 <th class="py-3 px-4">Nome</th>
                 <th class="py-3 px-4">Sexo</th>
@@ -93,7 +107,7 @@
               </tr>
             </thead>
             <tbody id="tabela-pacientes">
-              <tr><td colspan="8" class="py-8 text-center text-slate-400">Carregando...</td></tr>
+              <tr><td colspan="9" class="py-8 text-center text-slate-400">Carregando...</td></tr>
             </tbody>
           </table>
         </div>
