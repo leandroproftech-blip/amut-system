@@ -42,17 +42,29 @@ async function carregarPacientes() {
         <td class="py-3 px-4">${p.responsavel_principal || '<span class="text-slate-400">Não informado</span>'}</td>
         <td class="py-3 px-4">${p.nivel_suporte || '-'}</td>
         <td class="py-3 px-4"><span class="px-2 py-1 rounded-full text-xs font-semibold ${corStatus(p.status)}">${p.status}</span></td>
-        <td class="py-3 px-4 text-right space-x-2 whitespace-nowrap">
-          <button onclick="abrirModalEditarPaciente(${p.id})" class="text-amut-blue hover:underline text-xs font-semibold">Editar</button>
-          <button onclick="imprimirComprovante(${p.id})" class="text-amut-purple hover:underline text-xs font-semibold">Comprovante</button>
-          <button onclick="imprimirFicha(${p.id})" class="text-amut-green hover:underline text-xs font-semibold">Ficha</button>
-          <button onclick="excluirPaciente(${p.id}, '${p.nome.replace(/'/g, "\\'")}')" class="text-amut-red hover:underline text-xs font-semibold">Excluir</button>
+        <td class="py-3 px-4 text-right whitespace-nowrap">
+          <div class="inline-flex items-center gap-1">
+            ${botaoAcaoIcone('pencil', 'Editar', 'text-amut-blue hover:bg-sky-50', `abrirModalEditarPaciente(${p.id})`)}
+            ${botaoAcaoIcone('file-check', 'Comprovante', 'text-amut-purple hover:bg-purple-50', `imprimirComprovante(${p.id})`)}
+            ${botaoAcaoIcone('file-text', 'Ficha', 'text-amut-green hover:bg-green-50', `imprimirFicha(${p.id})`)}
+            ${botaoAcaoIcone('id-card', 'Carteirinha', 'text-amut-navy hover:bg-slate-100', `imprimirCarteirinha(${p.id})`)}
+            ${botaoAcaoIcone('trash-2', 'Excluir', 'text-amut-red hover:bg-red-50', `excluirPaciente(${p.id}, '${p.nome.replace(/'/g, "\\'")}')`)}
+          </div>
         </td>`;
       tbody.appendChild(tr);
     });
+    if (window.lucide) lucide.createIcons();
   } catch (err) {
     tbody.innerHTML = `<tr><td colspan="8" class="py-8 text-center text-red-500">${err.message}</td></tr>`;
   }
+}
+
+function botaoAcaoIcone(icone, rotulo, classes, onclick) {
+  return `
+    <button type="button" onclick="${onclick}" aria-label="${rotulo}" class="relative group p-1.5 rounded-lg transition ${classes}">
+      <i data-lucide="${icone}" class="w-4 h-4"></i>
+      <span class="pointer-events-none absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 rounded bg-slate-800 text-white text-xs font-medium whitespace-nowrap opacity-0 group-hover:opacity-100 transition z-20">${rotulo}</span>
+    </button>`;
 }
 
 function corStatus(status) {

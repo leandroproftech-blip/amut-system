@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "seed": "node database/seed.js"
+    "seed": "node database/seed.js",
+    "reset-admin": "node database/reset-admin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

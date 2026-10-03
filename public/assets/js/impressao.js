@@ -439,3 +439,315 @@ async function imprimirRelatorioMensalContribuicoes(mes) {
     alert('Erro ao gerar relatório mensal: ' + err.message);
   }
 }
+
+// =====================================================================
+// CARTEIRA DE IDENTIFICAÇÃO TEA (frente e verso)
+// Desenhada em SVG com viewBox 490 x 385, a mesma proporção do modelo oficial.
+// =====================================================================
+
+const CARTEIRA_LARGURA_MM = 85.6;
+const CARTEIRA_ALTURA_MM = +(CARTEIRA_LARGURA_MM * 385 / 490).toFixed(2);
+
+const COR = {
+  navy: '#13266A',
+  azul: '#1D4FB3',
+  azulClaro: '#2BA3E0',
+  vermelho: '#E3262D',
+  verde: '#2CA84A',
+  amarelo: '#F7C21A',
+  roxo: '#7B3FB5',
+  verdeAssinatura: '#3BAA47'
+};
+
+const FONTE_TITULO = "'Baloo 2', 'Arial Black', Arial, sans-serif";
+const FONTE_TEXTO = 'Arial, Helvetica, sans-serif';
+
+function escHtmlCarteira(texto) {
+  return String(texto ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+function formatarCpfCarteira(cpf) {
+  const d = String(cpf || '').replace(/\D/g, '');
+  if (d.length !== 11) return cpf || '';
+  return d.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4');
+}
+
+function formatarDataCarteira(data) {
+  if (!data) return '';
+  const d = new Date(String(data).length <= 10 ? data + 'T00:00:00' : data);
+  return isNaN(d) ? '' : d.toLocaleDateString('pt-BR');
+}
+
+// Pai e mãe primeiro; se não houver, usa os demais responsáveis cadastrados
+function obterFiliacaoCarteira(responsaveis) {
+  const lista = Array.isArray(responsaveis) ? responsaveis : [];
+  const pai = lista.find((r) => r.parentesco === 'Pai');
+  const mae = lista.find((r) => r.parentesco === 'Mãe');
+  const filiacao = [pai, mae].filter(Boolean);
+  lista.forEach((r) => {
+    if (filiacao.length < 2 && !filiacao.includes(r)) filiacao.push(r);
+  });
+  return filiacao.map((r) => r.nome || '');
+}
+
+// Faixa de peças de quebra-cabeça presa na borda superior (y = 0).
+// tabsLaterais[i]: encaixe entre a peça i e i+1 (+1 = a peça i avança para a direita).
+// tabsBase[i]: encaixe na borda livre da peça (+1 = saliência, -1 = recorte).
+function faixaPecas({ larguras, cores, profundidade, tabsLaterais, tabsBase }) {
+  const topo = -20;
+  const rLat = Math.min(8, profundidade / 2 - 1);
+  const nLat = rLat * 0.7;
+  const rBase = 8.5;
+  const nBase = 6;
+  const cyLat = profundidade / 2;
+  let x = 0;
+
+  return larguras.map((largura, i) => {
+    const x0 = x;
+    const x1 = x + largura;
+    x = x1;
+    const cx = (x0 + x1) / 2;
+    const ultimo = i === larguras.length - 1;
+    const primeiro = i === 0;
+
+    let d = `M${x0},${topo} L${x1},${topo} `;
+    if (!ultimo) {
+      const s = tabsLaterais[i] > 0 ? 1 : 0;
+      d += `L${x1},${cyLat - nLat} A${rLat},${rLat} 0 1 ${s} ${x1},${cyLat + nLat} `;
+    }
+    d += `L${x1},${profundidade} `;
+    if (tabsBase[i]) {
+      const s = tabsBase[i] > 0 ? 1 : 0;
+      d += `L${cx + nBase},${profundidade} A${rBase},${rBase} 0 1 ${s} ${cx - nBase},${profundidade} `;
+    }
+    d += `L${x0},${profundidade} `;
+    if (!primeiro) {
+      const s = tabsLaterais[i - 1] > 0 ? 0 : 1;
+      d += `L${x0},${cyLat + nLat} A${rLat},${rLat} 0 1 ${s} ${x0},${cyLat - nLat} `;
+    }
+    d += 'Z';
+    return `<path d="${d}" fill="${cores[i]}" stroke="#fff" stroke-width="2.4" stroke-linejoin="round"/>`;
+  }).join('');
+}
+
+function faixaPecasTopoFrente() {
+  return faixaPecas({
+    larguras: [150, 120, 75, 145],
+    cores: [COR.azul, COR.vermelho, COR.verde, COR.amarelo],
+    profundidade: 26,
+    tabsLaterais: [1, -1, 1],
+    tabsBase: [-1, -1, 1, -1]
+  });
+}
+
+function faixaPecasBase(cores) {
+  const pecas = faixaPecas({
+    larguras: [90, 95, 100, 75, 60, 70],
+    cores,
+    profundidade: 22,
+    tabsLaterais: [1, -1, 1, -1, 1],
+    tabsBase: [1, -1, 1, -1, 1, -1]
+  });
+  return `<g transform="translate(0,385) scale(1,-1)">${pecas}</g>`;
+}
+
+function coracaoQuebraCabeca(cx, cy, largura) {
+  const escala = largura / 100;
+  const contorno = 'M50 88 C20 66 2 50 2 28 C2 12 14 2 28 2 C38 2 46 8 50 16 C54 8 62 2 72 2 C86 2 98 12 98 28 C98 50 80 66 50 88Z';
+  const id = 'cor' + Math.random().toString(36).slice(2, 8);
+  return `
+    <g transform="translate(${cx - largura / 2},${cy - largura * 0.45}) scale(${escala})">
+      <defs><clipPath id="${id}"><path d="${contorno}"/></clipPath></defs>
+      <g clip-path="url(#${id})">
+        <rect x="0" y="0" width="50" height="45" fill="${COR.azul}"/>
+        <rect x="50" y="0" width="50" height="45" fill="${COR.vermelho}"/>
+        <rect x="0" y="45" width="50" height="45" fill="${COR.roxo}"/>
+        <rect x="50" y="45" width="50" height="45" fill="${COR.amarelo}"/>
+        <path d="M50 0 V90 M0 45 H100" stroke="#fff" stroke-width="3"/>
+        <circle cx="45" cy="25" r="6.5" fill="${COR.vermelho}" stroke="#fff" stroke-width="3"/>
+        <circle cx="25" cy="50" r="6.5" fill="${COR.azul}" stroke="#fff" stroke-width="3"/>
+        <circle cx="75" cy="40" r="6.5" fill="${COR.amarelo}" stroke="#fff" stroke-width="3"/>
+        <circle cx="55" cy="66" r="6.5" fill="${COR.roxo}" stroke="#fff" stroke-width="3"/>
+      </g>
+      <path d="${contorno}" fill="none" stroke="#fff" stroke-width="4"/>
+    </g>`;
+}
+
+// Texto que nunca ultrapassa a largura disponível
+function textoSvg(x, y, texto, { tamanho, maxLargura, peso = 'bold', cor = '#111', ancora = 'start', fonte = FONTE_TEXTO, espacamento = 0, larguraFixa = null }) {
+  const valor = escHtmlCarteira(texto);
+  const estimada = String(texto || '').length * tamanho * 0.62 + espacamento * String(texto || '').length;
+  let ajuste = '';
+  if (larguraFixa) ajuste = ` textLength="${larguraFixa}" lengthAdjust="spacingAndGlyphs"`;
+  else if (maxLargura && estimada > maxLargura) ajuste = ` textLength="${maxLargura}" lengthAdjust="spacingAndGlyphs"`;
+  return `<text x="${x}" y="${y}" font-family="${fonte}" font-size="${tamanho}" font-weight="${peso}" fill="${cor}" text-anchor="${ancora}" letter-spacing="${espacamento}"${ajuste}>${valor}</text>`;
+}
+
+const ICONES_VERSO = {
+  nome: `<circle cx="12" cy="8" r="4.2" fill="#fff"/><path d="M3.5 21.5c0-4.8 3.8-7.5 8.5-7.5s8.5 2.7 8.5 7.5z" fill="#fff"/>`,
+  nascimento: `<rect x="3.5" y="5.5" width="17" height="15" rx="2" fill="#fff"/>
+    <path d="M8 3v4M16 3v4" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/>
+    <g fill="${COR.navy}"><rect x="6.3" y="11" width="2.6" height="2.3"/><rect x="10.7" y="11" width="2.6" height="2.3"/><rect x="15.1" y="11" width="2.6" height="2.3"/><rect x="6.3" y="15.3" width="2.6" height="2.3"/><rect x="10.7" y="15.3" width="2.6" height="2.3"/></g>`,
+  cpf: `<rect x="2.5" y="5.5" width="19" height="13" rx="2" fill="#fff"/>
+    <circle cx="8" cy="10.6" r="2" fill="${COR.navy}"/><path d="M4.8 16c.5-1.8 1.7-2.7 3.2-2.7s2.7.9 3.2 2.7z" fill="${COR.navy}"/>
+    <path d="M13.5 10h5M13.5 13h5M13.5 16h3.5" stroke="${COR.navy}" stroke-width="1.5" stroke-linecap="round"/>`,
+  matricula: `<path d="M9.3 4.2a2.7 2.7 0 0 1 5.4 0v1.6h4.1v4.1h-1.6a2.7 2.7 0 0 0 0 5.4h1.6v4.1h-4.1v-1.6a2.7 2.7 0 0 0-5.4 0v1.6H5.2v-4.1h1.6a2.7 2.7 0 0 0 0-5.4H5.2V5.8h4.1z" fill="#fff"/>`,
+  filiacao: `<circle cx="7.5" cy="6" r="2.8" fill="#fff"/><circle cx="16.5" cy="6" r="2.8" fill="#fff"/>
+    <path d="M3 20v-5.6a4.5 4.5 0 0 1 9 0V20z" fill="#fff"/><path d="M12 20v-5.6a4.5 4.5 0 0 1 9 0V20z" fill="#fff"/>
+    <circle cx="12" cy="13.2" r="1.9" fill="#fff" stroke="${COR.navy}" stroke-width="1"/><path d="M9.6 20.5v-2.6a2.4 2.4 0 0 1 4.8 0v2.6z" fill="#fff" stroke="${COR.navy}" stroke-width="1"/>`
+};
+
+function iconeVerso(nome, cx, cy) {
+  return `
+    <circle cx="${cx}" cy="${cy}" r="13" fill="${COR.navy}"/>
+    <g transform="translate(${cx - 9},${cy - 9}) scale(0.75)">${ICONES_VERSO[nome]}</g>`;
+}
+
+function linhaVerso({ icone, cy, rotulo, valor, xValor, xFimLinha, xInicioLinha }) {
+  const yLinha = cy + 7;
+  return `
+    ${icone ? iconeVerso(icone, 50, cy) : ''}
+    ${rotulo ? textoSvg(76, cy + 5, rotulo, { tamanho: 10, cor: COR.navy }) : ''}
+    <line x1="${xInicioLinha ?? xValor - 4}" y1="${yLinha}" x2="${xFimLinha}" y2="${yLinha}" stroke="${COR.navy}" stroke-width="1"/>
+    ${textoSvg(xValor, cy + 4, valor, { tamanho: 12.5, maxLargura: xFimLinha - xValor - 4 })}`;
+}
+
+function svgCarteira(conteudo) {
+  const clipId = 'card' + Math.random().toString(36).slice(2, 8);
+  return `
+    <svg class="carteira" viewBox="0 0 490 385" width="${CARTEIRA_LARGURA_MM}mm" height="${CARTEIRA_ALTURA_MM}mm" xmlns="http://www.w3.org/2000/svg">
+      <defs><clipPath id="${clipId}"><rect x="0" y="0" width="490" height="385" rx="20"/></clipPath></defs>
+      <g clip-path="url(#${clipId})">
+        <rect x="0" y="0" width="490" height="385" fill="#fff"/>
+        ${conteudo}
+      </g>
+      <rect x="0.75" y="0.75" width="488.5" height="383.5" rx="20" fill="none" stroke="#c7ccd6" stroke-width="1.5"/>
+    </svg>`;
+}
+
+function gerarFrenteCarteira(p, logo) {
+  const clipFoto = 'foto' + Math.random().toString(36).slice(2, 8);
+  const foto = p.foto
+    ? `<image href="${p.foto}" x="300" y="73" width="153" height="167" preserveAspectRatio="xMidYMid slice" clip-path="url(#${clipFoto})"/>`
+    : `<g clip-path="url(#${clipFoto})">
+         <rect x="300" y="73" width="153" height="167" fill="#e4e5e7"/>
+         <circle cx="376.5" cy="133" r="30" fill="#c9cacd"/>
+         <path d="M316 240 C316 192 343 172 376.5 172 C410 172 437 192 437 240 Z" fill="#c9cacd"/>
+         <rect x="300" y="210" width="153" height="30" fill="#d3d4d7"/>
+         ${textoSvg(376.5, 231, 'FOTO 3X4', { tamanho: 16, cor: '#5b5d61', ancora: 'middle', fonte: FONTE_TITULO, peso: '800' })}
+       </g>`;
+
+  return svgCarteira(`
+    ${faixaPecasTopoFrente()}
+
+    ${logo ? `<image href="${logo}" x="89" y="32" width="158" height="148" preserveAspectRatio="xMidYMid meet"/>` : ''}
+
+    ${textoSvg(167, 214, 'CARTEIRA DE', { tamanho: 26, cor: COR.navy, ancora: 'middle', fonte: FONTE_TITULO, peso: '800', larguraFixa: 172 })}
+    ${textoSvg(167, 239, 'IDENTIFICAÇÃO', { tamanho: 26, cor: COR.navy, ancora: 'middle', fonte: FONTE_TITULO, peso: '800', larguraFixa: 217 })}
+    <text x="167" y="276" font-family="${FONTE_TITULO}" font-size="52" font-weight="800" text-anchor="middle" textLength="150" lengthAdjust="spacingAndGlyphs">
+      <tspan fill="${COR.azul}">T</tspan><tspan fill="${COR.verde}">E</tspan><tspan fill="${COR.vermelho}">A</tspan>
+    </text>
+
+    <defs><clipPath id="${clipFoto}"><rect x="300" y="73" width="153" height="167" rx="10"/></clipPath></defs>
+    ${foto}
+    <rect x="300" y="73" width="153" height="167" rx="10" fill="none" stroke="${COR.navy}" stroke-width="2.5"/>
+
+    <path d="M0,278 C80,284 150,300 245,301 C330,302 410,274 490,262 L490,385 L0,385 Z" fill="${COR.navy}"/>
+    ${coracaoQuebraCabeca(245, 306, 50)}
+    ${textoSvg(249, 343, 'RESPEITO • INCLUSÃO • EMPATIA • DIREITOS', { tamanho: 11, cor: '#fff', ancora: 'middle', larguraFixa: 302 })}
+
+    ${faixaPecasBase([COR.azul, COR.roxo, COR.amarelo, COR.verde, COR.azulClaro, COR.vermelho])}
+  `);
+}
+
+function gerarVersoCarteira(p) {
+  const filiacao = obterFiliacaoCarteira(p.responsaveis);
+  const matricula = p.numero_inscricao
+    ? `${p.numero_inscricao}${p.ano_inscricao ? '/' + p.ano_inscricao : ''}`
+    : '';
+
+  return svgCarteira(`
+    <rect x="21" y="18" width="427" height="210" rx="10" fill="#fff" stroke="${COR.navy}" stroke-width="2"/>
+    <path d="M21,42 L21,28 A10,10 0 0 1 31,18 L438,18 A10,10 0 0 1 448,28 L448,42 Z" fill="${COR.navy}"/>
+    ${textoSvg(234.5, 35, 'INFORMAÇÕES DO CADASTRO', { tamanho: 13, cor: '#fff', ancora: 'middle', espacamento: 0.4 })}
+
+    <rect x="272" y="78" width="160" height="56" rx="3" fill="#eef0f3"/>
+
+    ${linhaVerso({ icone: 'nome', cy: 63, rotulo: 'NOME:', valor: (p.nome || '').toUpperCase(), xValor: 122, xFimLinha: 432 })}
+    ${linhaVerso({ icone: 'nascimento', cy: 95, rotulo: 'D.N.:', valor: formatarDataCarteira(p.data_nascimento), xValor: 118, xFimLinha: 264 })}
+    ${linhaVerso({ icone: 'cpf', cy: 126, rotulo: 'CPF:', valor: formatarCpfCarteira(p.cpf), xValor: 114, xFimLinha: 264 })}
+    ${linhaVerso({ icone: 'matricula', cy: 157, rotulo: 'MATRÍCULA TEA:', valor: matricula, xValor: 168, xFimLinha: 432 })}
+    ${linhaVerso({ icone: 'filiacao', cy: 186, rotulo: 'FILIAÇÃO:', valor: (filiacao[0] || '').toUpperCase(), xValor: 140, xFimLinha: 432 })}
+    ${linhaVerso({ icone: null, cy: 208, rotulo: '', valor: (filiacao[1] || '').toUpperCase(), xValor: 140, xFimLinha: 432, xInicioLinha: 76 })}
+
+    <rect x="211" y="238" width="237" height="43" rx="6" fill="#fff" stroke="${COR.verdeAssinatura}" stroke-width="2"/>
+    <path d="M211,252 L211,244 A6,6 0 0 1 217,238 L442,238 A6,6 0 0 1 448,244 L448,252 Z" fill="${COR.verdeAssinatura}"/>
+    ${textoSvg(329.5, 248.5, 'ASSINATURA DO RESPONSÁVEL:', { tamanho: 9, cor: '#fff', ancora: 'middle' })}
+
+    <path d="M0,262 C120,262 200,300 300,302 C380,304 440,292 490,286 L490,385 L0,385 Z" fill="${COR.navy}"/>
+
+    <g transform="translate(40,302)">
+      <path d="M20 2 L36 8 V20 C36 30 29 37 20 41 C11 37 4 30 4 20 V8 Z" fill="none" stroke="#fff" stroke-width="2.6" stroke-linejoin="round"/>
+      <rect x="13" y="19" width="14" height="11" rx="2" fill="#fff"/>
+      <path d="M15.5 19 V15.5 a4.5 4.5 0 0 1 9 0 V19" fill="none" stroke="#fff" stroke-width="2.4"/>
+      <circle cx="20" cy="24.5" r="1.6" fill="${COR.navy}"/>
+    </g>
+    ${textoSvg(90, 315, 'VÁLIDA SOMENTE NO', { tamanho: 10.5, cor: '#fff' })}
+    ${textoSvg(90, 328, 'TERRITÓRIO DO MUNICÍPIO DE', { tamanho: 10.5, cor: '#fff' })}
+    ${textoSvg(90, 351, 'LÁBREA – AM', { tamanho: 22, cor: '#fff', fonte: FONTE_TITULO, peso: '800', espacamento: 0.5 })}
+    ${coracaoQuebraCabeca(370, 324, 66)}
+
+    ${faixaPecasBase([COR.azul, COR.roxo, COR.verde, COR.amarelo, COR.verde, COR.vermelho])}
+  `);
+}
+
+async function imprimirCarteirinha(pacienteId) {
+  try {
+    const p = await api.get(`/pacientes/${pacienteId}`);
+    const logo = await obterLogoDataUrl();
+
+    const janela = window.open('', '_blank', 'width=1000,height=650');
+    janela.document.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Carteirinha - ${escHtmlCarteira(p.nome)}</title>
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&display=block" rel="stylesheet">
+        <style>
+          @page { size: A4; margin: 12mm; }
+          * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body { font-family: Arial, Helvetica, sans-serif; margin: 0; padding: 10mm 0; color: #111; }
+          .pagina { display: flex; justify-content: center; gap: 8mm; flex-wrap: wrap; }
+          .rotulo { font-size: 9pt; color: #64748b; text-align: center; margin-bottom: 2mm; }
+          .carteira { display: block; flex-shrink: 0; }
+          .aviso { text-align: center; font-size: 8.5pt; color: #94a3b8; margin-top: 8mm; }
+          @media print { .aviso, .rotulo { display: none; } body { padding: 0; } }
+        </style>
+      </head>
+      <body>
+        <div class="pagina">
+          <div><div class="rotulo">Frente</div>${gerarFrenteCarteira(p, logo)}</div>
+          <div><div class="rotulo">Verso</div>${gerarVersoCarteira(p)}</div>
+        </div>
+        <p class="aviso">Na janela de impressão, deixe a escala em 100% e ative "Gráficos de plano de fundo" para sair colorido.</p>
+        <script>
+          window.onload = function () {
+            var imprimir = function () { setTimeout(function () { window.print(); }, 300); };
+            if (document.fonts && document.fonts.ready) document.fonts.ready.then(imprimir); else imprimir();
+          };
+        </script>
+      </body>
+      </html>
+    `);
+    janela.document.close();
+  } catch (err) {
+    alert('Erro ao gerar carteirinha: ' + err.message);
+  }
+}
+
