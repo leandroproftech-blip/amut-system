@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#13266A">
+<title>Sem conexão - Painel AMUT</title>
+<style>
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+         font-family: 'Poppins', Arial, sans-serif; background: linear-gradient(135deg,#13266A 0%,#0d1a4d 60%,#00B8FE 160%); }
+  .caixa { background: #fff; border-radius: 16px; padding: 32px; max-width: 380px; text-align: center; box-shadow: 0 20px 40px rgba(0,0,0,.25); }
+  img { height: 80px; }
+  h1 { color: #13266A; font-size: 20px; margin: 16px 0 8px; }
+  p { color: #64748b; font-size: 14px; margin: 0 0 20px; }
+  button { background: #13266A; color: #fff; border: 0; border-radius: 8px; padding: 12px 24px; font-weight: 600; cursor: pointer; }
+  button:hover { background: #00B8FE; }
+</style>
+</head>
+<body>
+  <div class="caixa">
+    <img src="/assets/img/logo.png" alt="Logo AMUT">
+    <h1>Sem conexão com a internet</h1>
+    <p>O painel precisa de internet para acessar os cadastros. Verifique sua conexão e tente novamente.</p>
+    <button onclick="location.reload()">Tentar novamente</button>
+  </div>
+</body>
+</html>
